@@ -1,0 +1,130 @@
+{
+  "pluginAlias": "IportBezelPlatform",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Exposes [iPort Surface Mount Buttons](https://www.iportproducts.com/products/surface-mount-buttons/) (SM Buttons / SM Bezel) to HomeKit. Each bezel becomes one accessory with numbered button services and a per-bezel Lightbulb for LED color control.",
+  "footerDisplay": "Each bezel must be reachable on TCP port `10001` and assigned a stable IP (DHCP reservation or static).",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Platform name",
+        "type": "string",
+        "default": "iPort Bezels",
+        "required": true,
+        "description": "Display name shown in the Homebridge log."
+      },
+      "ips": {
+        "title": "Bezels",
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "properties": {
+            "ip": {
+              "title": "IP address",
+              "type": "string",
+              "required": true,
+              "format": "ipv4",
+              "placeholder": "192.168.1.50",
+              "description": "LAN IP of this bezel. Bezel must be reachable on TCP 10001."
+            },
+            "accessoryName": {
+              "title": "Accessory name",
+              "type": "string",
+              "default": "iPort Bezel",
+              "description": "How this bezel appears in the Home app."
+            },
+            "buttonCount": {
+              "title": "Button count",
+              "type": "integer",
+              "default": 10,
+              "oneOf": [
+                { "title": "6 buttons", "enum": [6] },
+                { "title": "10 buttons", "enum": [10] }
+              ],
+              "description": "Number of physical buttons on this bezel."
+            }
+          }
+        }
+      },
+      "longPressMs": {
+        "title": "Long-press threshold (ms)",
+        "type": "integer",
+        "default": 500,
+        "minimum": 100,
+        "maximum": 5000,
+        "description": "Press-and-hold duration before a LONG_PRESS fires."
+      },
+      "doublePressMs": {
+        "title": "Double-press window (ms)",
+        "type": "integer",
+        "default": 500,
+        "minimum": 100,
+        "maximum": 2000,
+        "description": "Window after release for a second tap to register as DOUBLE_PRESS. Also the delay before SINGLE_PRESS emits."
+      },
+      "singleFlickMs": {
+        "title": "Single-press flick duration (ms)",
+        "type": "integer",
+        "default": 300,
+        "minimum": 50,
+        "maximum": 2000,
+        "description": "Length of the green LED flick on SINGLE_PRESS (also each half of the double-press flick)."
+      },
+      "longFlickMs": {
+        "title": "Long-press flick duration (ms)",
+        "type": "integer",
+        "default": 1000,
+        "minimum": 100,
+        "maximum": 5000,
+        "description": "Length of the green LED flick on LONG_PRESS."
+      },
+      "doubleFlickGapMs": {
+        "title": "Double-flick gap (ms)",
+        "type": "integer",
+        "default": 150,
+        "minimum": 0,
+        "maximum": 1000,
+        "description": "Restore-color gap between the two flicks of a DOUBLE_PRESS confirmation."
+      }
+    }
+  },
+  "layout": [
+    "name",
+    {
+      "key": "ips",
+      "type": "array",
+      "title": "Bezels",
+      "buttonText": "Add bezel",
+      "items": [
+        "ips[].ip",
+        "ips[].accessoryName",
+        "ips[].buttonCount"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Advanced — gesture timings",
+      "expandable": true,
+      "expanded": false,
+      "description": "Defaults work for most users. Adjust only if the built-in single / double / long press detection feels off.",
+      "items": [
+        "longPressMs",
+        "doublePressMs"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Advanced — LED flick timings",
+      "expandable": true,
+      "expanded": false,
+      "description": "Length of the green LED flash used to confirm each press.",
+      "items": [
+        "singleFlickMs",
+        "longFlickMs",
+        "doubleFlickGapMs"
+      ]
+    }
+  ]
+}

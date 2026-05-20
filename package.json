@@ -1,8 +1,14 @@
 {
   "name": "homebridge-iport-bezel",
   "version": "1.0.0",
-  "description": "HomeBridge plugin for iPort Bezel 10-button panels",
+  "description": "Homebridge platform plugin for iPort Surface Mount Buttons (SM Buttons / SM Bezel) — 6 and 10 button models. Exposes each button as a HomeKit stateless switch and the LEDs as a Lightbulb with full HSB color control.",
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "config.schema.json",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@types/node": "^20.0.0",
     "homebridge": "^1.0.0",
@@ -10,10 +16,12 @@
     "typescript": "^5.0.0"
   },
   "engines": {
-    "homebridge": ">=1.0.0"
+    "homebridge": ">=1.0.0",
+    "node": ">=18"
   },
   "scripts": {
-    "build": "rimraf ./dist && tsc"
+    "build": "rimraf ./dist && tsc",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -21,11 +29,15 @@
   },
   "keywords": [
     "iPort",
+    "iPort SM",
+    "iPort Bezel",
+    "SM Buttons",
     "Homebridge",
     "Home Automation",
+    "HomeKit",
     "homebridge-plugin"
   ],
-  "author": "",
+  "author": "Dmitry Kutergin",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/dmitry-kutergin/iport-homebridge/issues"
