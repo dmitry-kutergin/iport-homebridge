@@ -65,13 +65,6 @@ function hsbToHex(h: number, s: number, b: number): string {
   return to(r) + to(g) + to(bl);
 }
 
-function isGreenish(hex: string): boolean {
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  return g > 128 && g > r && g > b;
-}
-
 function invertHex(hex: string): string {
   const r = 255 - parseInt(hex.substring(0, 2), 16);
   const g = 255 - parseInt(hex.substring(2, 4), 16);
@@ -79,7 +72,28 @@ function invertHex(hex: string): string {
   return [r, g, b].map(n => n.toString(16).padStart(2, '0').toUpperCase()).join('');
 }
 
-const FLICK_GREEN = '00FF00';
+// Sum of absolute RGB channel deltas. 0 == identical; 765 == black ↔ white.
+function colorDistance(a: string, b: string): number {
+  const ar = parseInt(a.substring(0, 2), 16);
+  const ag = parseInt(a.substring(2, 4), 16);
+  const ab = parseInt(a.substring(4, 6), 16);
+  const br = parseInt(b.substring(0, 2), 16);
+  const bg = parseInt(b.substring(2, 4), 16);
+  const bb = parseInt(b.substring(4, 6), 16);
+  return Math.abs(ar - br) + Math.abs(ag - bg) + Math.abs(ab - bb);
+}
+
+function normalizeHex(input: string | undefined, fallback: string): string {
+  if (!input) return fallback;
+  const h = input.trim().replace(/^#/, '').toUpperCase();
+  return /^[0-9A-F]{6}$/.test(h) ? h : fallback;
+}
+
+const DEFAULT_FLICK_COLOR = '00FF00';
+// If the current LED color is within this RGB-channel-sum distance of the
+// configured flick color, the flick uses the inverse of the current color
+// instead — otherwise the user wouldn't see any change.
+const FLICK_NEAR_THRESHOLD = 100;
 
 // ─── TCP Client ──────────────────────────────────────────────────────────────
 
@@ -253,6 +267,7 @@ class LedController {
   constructor(
     private readonly tcp: TcpClient,
     private readonly timings: Timings,
+    private readonly flickHex: string,
     private readonly log?: { debug: (msg: string) => void },
   ) {}
 
@@ -283,7 +298,9 @@ class LedController {
   flick(pattern: FlickPattern): void {
     if (this.flickTimer) { clearTimeout(this.flickTimer); this.flickTimer = null; }
     const orig   = this.userHex();
-    const accent = isGreenish(orig) ? invertHex(orig) : FLICK_GREEN;
+    const accent = colorDistance(orig, this.flickHex) < FLICK_NEAR_THRESHOLD
+      ? invertHex(orig)
+      : this.flickHex;
     const single = this.timings.singleFlickMs;
     const long   = this.timings.longFlickMs;
     const gap    = this.timings.doubleFlickGapMs;
@@ -366,6 +383,7 @@ class IportBezelPlatform {
   private readonly runtime = new Map<string, BezelRuntime>();
 
   private readonly timings: Timings;
+  private readonly flickHex: string;
 
   constructor(private readonly log: Logging, private readonly config: PlatformConfig, private readonly api: API) {
     const cfg = config as Record<string, unknown>;
@@ -381,7 +399,13 @@ class IportBezelPlatform {
       longFlickMs:      num('longFlickMs'),
       doubleFlickGapMs: num('doubleFlickGapMs'),
     };
-    this.log.debug(`Timings: ${JSON.stringify(this.timings)}`);
+
+    const rawFlick = typeof cfg.flickColor === 'string' ? cfg.flickColor : undefined;
+    this.flickHex = normalizeHex(rawFlick, DEFAULT_FLICK_COLOR);
+    if (rawFlick && this.flickHex === DEFAULT_FLICK_COLOR && normalizeHex(rawFlick, '') === '') {
+      this.log.warn(`Invalid flickColor "${rawFlick}" — falling back to #${DEFAULT_FLICK_COLOR}`);
+    }
+    this.log.debug(`Timings: ${JSON.stringify(this.timings)}, flickColor=#${this.flickHex}`);
 
     this.api.on('didFinishLaunching', () => this.discoverDevices());
   }
@@ -516,7 +540,7 @@ class IportBezelPlatform {
     }
 
     const tcp = new TcpClient(ip, () => { /* reconnection handled internally */ });
-    const led = new LedController(tcp, this.timings, { debug: (m) => this.log.debug(`[${ip}] ${m}`) });
+    const led = new LedController(tcp, this.timings, this.flickHex, { debug: (m) => this.log.debug(`[${ip}] ${m}`) });
     const btnState: ButtonState[] = Array.from({ length: count }, () => ({ held: false, consumed: false, singleTimer: null, longTimer: null }));
     const rt: BezelRuntime = { services, btnState, tcp, led };
     this.runtime.set(acc.UUID, rt);

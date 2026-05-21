@@ -87,6 +87,14 @@
         "minimum": 0,
         "maximum": 1000,
         "description": "Restore-color gap between the two flicks of a DOUBLE_PRESS confirmation."
+      },
+      "flickColor": {
+        "title": "Press confirmation color",
+        "type": "string",
+        "default": "#00FF00",
+        "pattern": "^#?[0-9A-Fa-f]{6}$",
+        "placeholder": "#00FF00",
+        "description": "Hex color used for the LED flick that confirms a press. If the LED is currently close to this color, the flick uses the bitwise inverse of the current color instead so it stays visible."
       }
     }
   },
@@ -119,8 +127,9 @@
       "title": "Advanced — LED flick timings",
       "expandable": true,
       "expanded": false,
-      "description": "Length of the green LED flash used to confirm each press.",
+      "description": "Color and duration of the LED flash used to confirm each press.",
       "items": [
+        "flickColor",
         "singleFlickMs",
         "longFlickMs",
         "doubleFlickGapMs"

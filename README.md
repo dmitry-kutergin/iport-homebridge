@@ -56,6 +56,7 @@ Add a platform entry to `~/.homebridge/config.json` (or use the Homebridge UI's 
       "singleFlickMs": 300,
       "longFlickMs": 1000,
       "doubleFlickGapMs": 150,
+      "flickColor": "#00FF00",
       "ips": [
         {
           "ip": "192.168.1.50",
@@ -93,6 +94,7 @@ Add a platform entry to `~/.homebridge/config.json` (or use the Homebridge UI's 
 | `singleFlickMs` | no | `300` | Duration of a single green flick (used for `SINGLE_PRESS` confirmation and each half of the double flick). |
 | `longFlickMs` | no | `1000` | Duration of the green flick used for `LONG_PRESS` confirmation. |
 | `doubleFlickGapMs` | no | `150` | Restore-color gap between the two flicks of a `DOUBLE_PRESS` confirmation. |
+| `flickColor` | no | `"#00FF00"` | Hex color used for the press-confirmation flick. `#` is optional. If the LED is currently close to this color, the flick uses the bitwise inverse of the current color so it stays visible. |
 
 Hosting multiple bezels under a [Child Bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges) is recommended so a single misbehaving bezel can't slow the main bridge.
 
@@ -112,15 +114,15 @@ Each bezel exposes a **Lightbulb** service with On / Brightness / Hue / Saturati
 
 **At startup** the bezel is queried (`led=?`) and its reply seeds both the LedController and the HomeKit Lightbulb characteristics — so the slider in Home accurately reflects what the LEDs are physically showing on first connect. After that, HomeKit is the source of truth: subsequent bezel replies (keep-alive echoes) are ignored so they can't drift the slider. If the bezel doesn't reply within 5 s of connect, the plugin falls back to pushing HomeKit's cached value to the bezel.
 
-Every recognized button press briefly flicks the LEDs to **green** so the user gets immediate confirmation:
+Every recognized button press briefly flicks the LEDs to the **`flickColor`** (default `#00FF00` — green) so the user gets immediate confirmation:
 
 | Gesture | LED flick pattern |
 | --- | --- |
-| Single press | `singleFlickMs` green → restore. |
-| Double press | `singleFlickMs` green → `doubleFlickGapMs` restore → `singleFlickMs` green → restore. |
-| Long press | `longFlickMs` green → restore. |
+| Single press | `singleFlickMs` flickColor → restore. |
+| Double press | `singleFlickMs` flickColor → `doubleFlickGapMs` restore → `singleFlickMs` flickColor → restore. |
+| Long press | `longFlickMs` flickColor → restore. |
 
-If the current LED color is already greenish, the flick uses the **bitwise inverse** of the current color (e.g. pure green flicks to pure magenta) so the confirmation stays visible.
+If the LED is currently close to the configured `flickColor` (RGB-channel-sum distance < 100), the flick uses the **bitwise inverse** of the current color so the confirmation stays visible — e.g. with the default green flick color, pure green LEDs flick to pure magenta.
 
 ## HomeKit usage
 
