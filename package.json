@@ -1,6 +1,6 @@
 {
   "name": "homebridge-iport-bezel",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Homebridge platform plugin for iPort Surface Mount Buttons (SM Buttons / SM Bezel) — 6 and 10 button models. Exposes each button as a HomeKit stateless switch and the LEDs as a Lightbulb with full HSB color control.",
   "main": "dist/index.js",
   "files": [

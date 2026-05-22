@@ -123,14 +123,15 @@ class TcpClient {
   connect(): void {
     this.tmrReconn = null;
     const net = require('net');
-    this.socket = net.connect(TCP_PORT, this.host, () => {
+    const sock = net.connect(TCP_PORT, this.host, () => {
       this.alive = true;
       this.buf = '';
       this.startHealth();
       this.onUp?.();
     });
+    this.socket = sock;
 
-    this.socket.on('data', (d: Buffer) => {
+    sock.on('data', (d: Buffer) => {
       this.buf += d.toString();
       let i: number;
       while ((i = this.buf.indexOf(DELIMITER)) !== -1) {
@@ -140,8 +141,12 @@ class TcpClient {
       }
     });
 
-    this.socket.on('error',  () => this.crash('sock err'));
-    this.socket.on('close',  () => this.crash('closed'));
+    // Use a per-socket flag so that when both 'error' and 'close' fire on
+    // the same failed socket, only the first one triggers crash().
+    let crashed = false;
+    const onCrash = (r: string) => { if (!crashed) { crashed = true; this.crash(r); } };
+    sock.on('error', () => onCrash('sock err'));
+    sock.on('close', () => onCrash('closed'));
   }
 
   destroy(): void {
@@ -209,10 +214,13 @@ class TcpClient {
   }
 
   private crash(reason: string): void {
+    const wasAlive = this.alive;
     this.alive = false;
     this.killHealth();
     if (this.socket) { this.socket.destroy(); this.socket = null; }
-    this.onLost?.();
+    // Only surface "connection lost" the first time — not on every failed retry.
+    if (wasAlive) this.onLost?.();
+    if (this.tmrReconn) { clearTimeout(this.tmrReconn); this.tmrReconn = null; }
     this.tmrReconn = setTimeout(() => {
       this.onReconn();
       this.connect();
